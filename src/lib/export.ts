@@ -1,5 +1,7 @@
 import { db } from "@/db";
-import type { Trade } from "@/db/types";
+import { TradeSchema } from "@/db/schema";
+
+const LAST_EXPORT_KEY = "wheelhouse-last-export";
 
 export async function exportTrades(): Promise<void> {
   const trades = await db.trades.toArray();
@@ -11,6 +13,12 @@ export async function exportTrades(): Promise<void> {
   a.download = `wheelhouse-export-${new Date().toISOString().split("T")[0]}.json`;
   a.click();
   URL.revokeObjectURL(url);
+  localStorage.setItem(LAST_EXPORT_KEY, new Date().toISOString());
+}
+
+export function getLastExportedAt(): Date | null {
+  const stored = localStorage.getItem(LAST_EXPORT_KEY);
+  return stored ? new Date(stored) : null;
 }
 
 export async function importTrades(file: File): Promise<number> {
@@ -21,16 +29,16 @@ export async function importTrades(file: File): Promise<number> {
     throw new Error("Invalid file format: expected an array of trades");
   }
 
-  const trades = data as Trade[];
-
-  for (const trade of trades) {
-    if (!trade.id || !trade.ticker || !trade.dateOpened) {
-      throw new Error("Invalid trade data: missing required fields");
-    }
+  const result = TradeSchema.array().safeParse(data);
+  if (!result.success) {
+    const firstError = result.error.issues[0];
+    throw new Error(
+      `Invalid trade data at index ${String(firstError.path[0])}: ${firstError.message} (field: ${firstError.path.slice(1).map(String).join(".")})`
+    );
   }
 
-  await db.trades.bulkPut(trades);
-  return trades.length;
+  await db.trades.bulkPut(result.data);
+  return result.data.length;
 }
 
 export async function deleteAllTrades(): Promise<void> {

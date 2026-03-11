@@ -4,6 +4,9 @@ import { cn } from "@/lib/utils";
 
 const links = [
   { to: "/", label: "Dashboard" },
+  { to: "/wheels", label: "Wheels" },
+  { to: "/covered-calls", label: "Covered Calls" },
+  { to: "/csps", label: "Cash-Secured Puts" },
   { to: "/trades", label: "Trade Log" },
   { to: "/settings", label: "Settings" },
 ];

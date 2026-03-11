@@ -4,6 +4,9 @@ import {
   calculateDashboardStats,
   calculateMonthlyPnL,
   calculateCumulativePnL,
+  calculateStatsByStrategy,
+  calculateStatsByTicker,
+  calculateTradeInsights,
   groupTrades,
 } from "@/lib/calculations";
 
@@ -28,5 +31,20 @@ export function useTradeStats(trades: Trade[] | undefined, accountSize: number =
     [trades]
   );
 
-  return { stats, monthlyPnL, cumulativePnL, groups };
+  const strategyStats = useMemo(
+    () => (trades ? calculateStatsByStrategy(trades) : []),
+    [trades]
+  );
+
+  const tickerStats = useMemo(
+    () => (trades ? calculateStatsByTicker(trades) : []),
+    [trades]
+  );
+
+  const insights = useMemo(
+    () => (trades ? calculateTradeInsights(trades) : null),
+    [trades]
+  );
+
+  return { stats, monthlyPnL, cumulativePnL, groups, strategyStats, tickerStats, insights };
 }

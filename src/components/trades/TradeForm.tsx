@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useForm } from "react-hook-form";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
@@ -19,123 +19,111 @@ interface TradeFormProps {
   onCancel: () => void;
 }
 
+interface FormValues {
+  ticker: string;
+  optionType: string;
+  action: string;
+  strikePrice: string;
+  expirationDate: string;
+  contracts: string;
+  premiumPerContract: string;
+  closePrice: string;
+  underlyingPriceAtEntry: string;
+  underlyingPriceAtExit: string;
+  fees: string;
+  strategy: string;
+  status: string;
+  dateOpened: string;
+  dateClosed: string;
+  notes: string;
+  accountId: string;
+  assignedShares: string;
+  assignedCostBasis: string;
+  sharesSoldPrice: string;
+  sharesSoldDate: string;
+}
+
 export function TradeForm({ initial, accounts, onSubmit, onCancel }: TradeFormProps) {
-  const [ticker, setTicker] = useState(initial?.ticker ?? "");
-  const [optionType, setOptionType] = useState(initial?.optionType ?? "Call");
-  const [action, setAction] = useState(initial?.action ?? "Sell to Open");
-  const [strikePrice, setStrikePrice] = useState(
-    initial?.strikePrice?.toString() ?? ""
-  );
-  const [expirationDate, setExpirationDate] = useState(
-    initial?.expirationDate ?? ""
-  );
-  const [contracts, setContracts] = useState(
-    initial?.contracts?.toString() ?? "1"
-  );
-  const [premiumPerContract, setPremiumPerContract] = useState(
-    initial?.premiumPerContract?.toString() ?? ""
-  );
-  const [closePrice, setClosePrice] = useState(
-    initial?.closePrice?.toString() ?? ""
-  );
-  const [underlyingPriceAtEntry, setUnderlyingPriceAtEntry] = useState(
-    initial?.underlyingPriceAtEntry?.toString() ?? ""
-  );
-  const [underlyingPriceAtExit, setUnderlyingPriceAtExit] = useState(
-    initial?.underlyingPriceAtExit?.toString() ?? ""
-  );
-  const [fees, setFees] = useState(initial?.fees?.toString() ?? "0");
-  const [strategy, setStrategy] = useState(initial?.strategy ?? "Covered Call");
-  const [status, setStatus] = useState(initial?.status ?? "Open");
-  const [dateOpened, setDateOpened] = useState(
-    initial?.dateOpened ?? todayISO()
-  );
-  const [dateClosed, setDateClosed] = useState(initial?.dateClosed ?? "");
-  const [notes, setNotes] = useState(initial?.notes ?? "");
-  const [groupId] = useState(initial?.groupId ?? null);
-  const [accountId, setAccountId] = useState(initial?.accountId ?? "");
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { errors },
+  } = useForm<FormValues>({
+    defaultValues: {
+      ticker: initial?.ticker ?? "",
+      optionType: initial?.optionType ?? "Call",
+      action: initial?.action ?? "Sell to Open",
+      strikePrice: initial?.strikePrice?.toString() ?? "",
+      expirationDate: initial?.expirationDate ?? "",
+      contracts: initial?.contracts?.toString() ?? "1",
+      premiumPerContract: initial?.premiumPerContract?.toString() ?? "",
+      closePrice: initial?.closePrice?.toString() ?? "",
+      underlyingPriceAtEntry: initial?.underlyingPriceAtEntry?.toString() ?? "",
+      underlyingPriceAtExit: initial?.underlyingPriceAtExit?.toString() ?? "",
+      fees: initial?.fees?.toString() ?? "0",
+      strategy: initial?.strategy ?? "Covered Call",
+      status: initial?.status ?? "Open",
+      dateOpened: initial?.dateOpened ?? todayISO(),
+      dateClosed: initial?.dateClosed ?? "",
+      notes: initial?.notes ?? "",
+      accountId: initial?.accountId ?? "",
+      assignedShares: initial?.assignedShares?.toString() ?? "",
+      assignedCostBasis: initial?.assignedCostBasis?.toString() ?? "",
+      sharesSoldPrice: initial?.sharesSoldPrice?.toString() ?? "",
+      sharesSoldDate: initial?.sharesSoldDate ?? "",
+    },
+  });
 
-  // Assignment fields
-  const [assignedShares, setAssignedShares] = useState(
-    initial?.assignedShares?.toString() ?? ""
-  );
-  const [assignedCostBasis, setAssignedCostBasis] = useState(
-    initial?.assignedCostBasis?.toString() ?? ""
-  );
-  const [sharesSoldPrice, setSharesSoldPrice] = useState(
-    initial?.sharesSoldPrice?.toString() ?? ""
-  );
-  const [sharesSoldDate, setSharesSoldDate] = useState(
-    initial?.sharesSoldDate ?? ""
-  );
-
-  const [errors, setErrors] = useState<Record<string, string>>({});
-
+  const status = watch("status");
+  const contracts = watch("contracts");
   const isAssigned = status === "Assigned";
 
-  function validate(): boolean {
-    const errs: Record<string, string> = {};
-    if (!ticker.trim()) errs.ticker = "Required";
-    if (!strikePrice || Number(strikePrice) <= 0) errs.strikePrice = "Must be positive";
-    if (!expirationDate) errs.expirationDate = "Required";
-    if (!contracts || Number(contracts) <= 0) errs.contracts = "Must be positive";
-    if (!premiumPerContract || Number(premiumPerContract) < 0)
-      errs.premiumPerContract = "Required";
-    if (!underlyingPriceAtEntry || Number(underlyingPriceAtEntry) <= 0)
-      errs.underlyingPriceAtEntry = "Must be positive";
-    if (!dateOpened) errs.dateOpened = "Required";
-    setErrors(errs);
-    return Object.keys(errs).length === 0;
-  }
-
-  function handleSubmit(e: FormEvent) {
-    e.preventDefault();
-    if (!validate()) return;
-
-    const sharesNum = assignedShares ? Number(assignedShares) : null;
-    const costBasis = assignedCostBasis ? Number(assignedCostBasis) : null;
-    const soldPrice = sharesSoldPrice ? Number(sharesSoldPrice) : null;
+  function onValid(data: FormValues) {
+    const sharesNum = data.assignedShares ? Number(data.assignedShares) : null;
+    const costBasis = data.assignedCostBasis ? Number(data.assignedCostBasis) : null;
+    const soldPrice = data.sharesSoldPrice ? Number(data.sharesSoldPrice) : null;
     let sharesPnL: number | null = null;
     if (isAssigned && sharesNum && costBasis && soldPrice) {
       sharesPnL = (soldPrice - costBasis) * sharesNum;
     }
 
     onSubmit({
-      groupId,
-      dateOpened,
-      dateClosed: dateClosed || null,
-      ticker: ticker.toUpperCase().trim(),
-      optionType,
-      action,
-      strikePrice: Number(strikePrice),
-      expirationDate,
-      contracts: Number(contracts),
-      premiumPerContract: Number(premiumPerContract),
-      closePrice: closePrice ? Number(closePrice) : null,
-      underlyingPriceAtEntry: Number(underlyingPriceAtEntry),
-      underlyingPriceAtExit: underlyingPriceAtExit
-        ? Number(underlyingPriceAtExit)
+      groupId: initial?.groupId ?? null,
+      dateOpened: data.dateOpened,
+      dateClosed: data.dateClosed || null,
+      ticker: data.ticker.toUpperCase().trim(),
+      optionType: data.optionType as Trade["optionType"],
+      action: data.action as Trade["action"],
+      strikePrice: Number(data.strikePrice),
+      expirationDate: data.expirationDate,
+      contracts: Number(data.contracts),
+      premiumPerContract: Number(data.premiumPerContract),
+      closePrice: data.closePrice ? Number(data.closePrice) : null,
+      underlyingPriceAtEntry: Number(data.underlyingPriceAtEntry),
+      underlyingPriceAtExit: data.underlyingPriceAtExit
+        ? Number(data.underlyingPriceAtExit)
         : null,
-      fees: Number(fees),
-      strategy,
-      notes,
-      status,
+      fees: Number(data.fees),
+      strategy: data.strategy,
+      notes: data.notes,
+      status: data.status as Trade["status"],
       assignedShares: isAssigned ? sharesNum : null,
       assignedCostBasis: isAssigned ? costBasis : null,
       sharesSoldPrice: isAssigned ? soldPrice : null,
-      sharesSoldDate: isAssigned && sharesSoldDate ? sharesSoldDate : null,
+      sharesSoldDate: isAssigned && data.sharesSoldDate ? data.sharesSoldDate : null,
       sharesPnL: isAssigned ? sharesPnL : null,
-      accountId: accountId || null,
+      accountId: data.accountId || null,
+      positionId: initial?.positionId ?? null,
     });
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit(onValid)} className="space-y-4">
       {accounts && accounts.length > 0 && (
         <Select
           label="Account"
-          value={accountId}
-          onChange={(e) => setAccountId(e.target.value)}
+          {...register("accountId")}
           options={[
             { value: "", label: "No Account" },
             ...accounts.map((a) => ({ value: a.id, label: a.name })),
@@ -146,15 +134,13 @@ export function TradeForm({ initial, accounts, onSubmit, onCancel }: TradeFormPr
       <div className="grid grid-cols-2 gap-4">
         <Input
           label="Ticker"
-          value={ticker}
-          onChange={(e) => setTicker(e.target.value)}
           placeholder="AAPL"
-          error={errors.ticker}
+          error={errors.ticker?.message}
+          {...register("ticker", { required: "Required" })}
         />
         <Select
           label="Strategy"
-          value={strategy}
-          onChange={(e) => setStrategy(e.target.value)}
+          {...register("strategy")}
           options={STRATEGIES.map((s) => s)}
         />
       </div>
@@ -162,14 +148,12 @@ export function TradeForm({ initial, accounts, onSubmit, onCancel }: TradeFormPr
       <div className="grid grid-cols-2 gap-4">
         <Select
           label="Option Type"
-          value={optionType}
-          onChange={(e) => setOptionType(e.target.value as typeof optionType)}
+          {...register("optionType")}
           options={OPTION_TYPES.map((t) => t)}
         />
         <Select
           label="Action"
-          value={action}
-          onChange={(e) => setAction(e.target.value as typeof action)}
+          {...register("action")}
           options={ACTIONS.map((a) => a)}
         />
       </div>
@@ -179,24 +163,27 @@ export function TradeForm({ initial, accounts, onSubmit, onCancel }: TradeFormPr
           label="Strike Price"
           type="number"
           step="0.01"
-          value={strikePrice}
-          onChange={(e) => setStrikePrice(e.target.value)}
-          error={errors.strikePrice}
+          error={errors.strikePrice?.message}
+          {...register("strikePrice", {
+            required: "Required",
+            validate: (v) => Number(v) > 0 || "Must be positive",
+          })}
         />
         <Input
           label="Expiration"
           type="date"
-          value={expirationDate}
-          onChange={(e) => setExpirationDate(e.target.value)}
-          error={errors.expirationDate}
+          error={errors.expirationDate?.message}
+          {...register("expirationDate", { required: "Required" })}
         />
         <Input
           label="Contracts"
           type="number"
           min="1"
-          value={contracts}
-          onChange={(e) => setContracts(e.target.value)}
-          error={errors.contracts}
+          error={errors.contracts?.message}
+          {...register("contracts", {
+            required: "Required",
+            validate: (v) => Number(v) > 0 || "Must be positive",
+          })}
         />
       </div>
 
@@ -205,17 +192,18 @@ export function TradeForm({ initial, accounts, onSubmit, onCancel }: TradeFormPr
           label="Premium / Contract"
           type="number"
           step="0.01"
-          value={premiumPerContract}
-          onChange={(e) => setPremiumPerContract(e.target.value)}
-          error={errors.premiumPerContract}
+          error={errors.premiumPerContract?.message}
+          {...register("premiumPerContract", {
+            required: "Required",
+            validate: (v) => Number(v) >= 0 || "Must be non-negative",
+          })}
         />
         <Input
           label="Close Price"
           type="number"
           step="0.01"
-          value={closePrice}
-          onChange={(e) => setClosePrice(e.target.value)}
           placeholder="Leave blank if open"
+          {...register("closePrice")}
         />
       </div>
 
@@ -224,17 +212,18 @@ export function TradeForm({ initial, accounts, onSubmit, onCancel }: TradeFormPr
           label="Underlying @ Entry"
           type="number"
           step="0.01"
-          value={underlyingPriceAtEntry}
-          onChange={(e) => setUnderlyingPriceAtEntry(e.target.value)}
-          error={errors.underlyingPriceAtEntry}
+          error={errors.underlyingPriceAtEntry?.message}
+          {...register("underlyingPriceAtEntry", {
+            required: "Required",
+            validate: (v) => Number(v) > 0 || "Must be positive",
+          })}
         />
         <Input
           label="Underlying @ Exit"
           type="number"
           step="0.01"
-          value={underlyingPriceAtExit}
-          onChange={(e) => setUnderlyingPriceAtExit(e.target.value)}
           placeholder="Leave blank if open"
+          {...register("underlyingPriceAtExit")}
         />
       </div>
 
@@ -243,21 +232,18 @@ export function TradeForm({ initial, accounts, onSubmit, onCancel }: TradeFormPr
           label="Fees"
           type="number"
           step="0.01"
-          value={fees}
-          onChange={(e) => setFees(e.target.value)}
+          {...register("fees")}
         />
         <Select
           label="Status"
-          value={status}
-          onChange={(e) => setStatus(e.target.value as typeof status)}
+          {...register("status")}
           options={STATUSES.map((s) => s)}
         />
         <Input
           label="Date Opened"
           type="date"
-          value={dateOpened}
-          onChange={(e) => setDateOpened(e.target.value)}
-          error={errors.dateOpened}
+          error={errors.dateOpened?.message}
+          {...register("dateOpened", { required: "Required" })}
         />
       </div>
 
@@ -265,8 +251,7 @@ export function TradeForm({ initial, accounts, onSubmit, onCancel }: TradeFormPr
         <Input
           label="Date Closed"
           type="date"
-          value={dateClosed}
-          onChange={(e) => setDateClosed(e.target.value)}
+          {...register("dateClosed")}
         />
       )}
 
@@ -279,16 +264,14 @@ export function TradeForm({ initial, accounts, onSubmit, onCancel }: TradeFormPr
             <Input
               label="Assigned Shares"
               type="number"
-              value={assignedShares}
-              onChange={(e) => setAssignedShares(e.target.value)}
               placeholder={`${Number(contracts) * 100}`}
+              {...register("assignedShares")}
             />
             <Input
               label="Cost Basis / Share"
               type="number"
               step="0.01"
-              value={assignedCostBasis}
-              onChange={(e) => setAssignedCostBasis(e.target.value)}
+              {...register("assignedCostBasis")}
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
@@ -296,14 +279,12 @@ export function TradeForm({ initial, accounts, onSubmit, onCancel }: TradeFormPr
               label="Shares Sold Price"
               type="number"
               step="0.01"
-              value={sharesSoldPrice}
-              onChange={(e) => setSharesSoldPrice(e.target.value)}
+              {...register("sharesSoldPrice")}
             />
             <Input
               label="Shares Sold Date"
               type="date"
-              value={sharesSoldDate}
-              onChange={(e) => setSharesSoldDate(e.target.value)}
+              {...register("sharesSoldDate")}
             />
           </div>
         </div>
@@ -314,11 +295,10 @@ export function TradeForm({ initial, accounts, onSubmit, onCancel }: TradeFormPr
           Notes
         </label>
         <textarea
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
           rows={2}
           className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
           placeholder="Trade notes..."
+          {...register("notes")}
         />
       </div>
 

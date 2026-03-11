@@ -3,20 +3,35 @@ import { PnLChart } from "./PnLChart";
 import { WinLossChart } from "./WinLossChart";
 import { MonthlyPnLChart } from "./MonthlyPnLChart";
 import { ROIChart } from "./ROIChart";
-import { MonthlyROIChart } from "./MonthlyROIChart";
-import type { DashboardStats, MonthlyPnL, CumulativePnLPoint } from "@/lib/calculations";
+import { StrategyBreakdown } from "./StrategyBreakdown";
+import { TickerBreakdown } from "./TickerBreakdown";
+import { InsightsCard } from "./InsightsCard";
+import type {
+  DashboardStats,
+  MonthlyPnL,
+  CumulativePnLPoint,
+  StrategyStats,
+  TickerStats,
+  TradeInsights,
+} from "@/lib/calculations";
 import { formatCurrency } from "@/lib/utils";
 
 interface DashboardGridProps {
   stats: DashboardStats;
   monthlyPnL: MonthlyPnL[];
   cumulativePnL: CumulativePnLPoint[];
+  strategyStats: StrategyStats[];
+  tickerStats: TickerStats[];
+  insights: TradeInsights | null;
 }
 
 export function DashboardGrid({
   stats,
   monthlyPnL,
   cumulativePnL,
+  strategyStats,
+  tickerStats,
+  insights,
 }: DashboardGridProps) {
   const winCount = Math.round(
     (stats.winRate / 100) * (stats.closedTrades > 0 ? stats.closedTrades : 0)
@@ -38,20 +53,26 @@ export function DashboardGrid({
         <StatCard label="Total Fees" value={formatCurrency(stats.totalFees)} />
       </div>
 
+      {insights && (
+        <div className="grid gap-6 lg:grid-cols-2">
+          <InsightsCard insights={insights} />
+          <WinLossChart wins={winCount} losses={lossCount} />
+        </div>
+      )}
+
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <PnLChart data={cumulativePnL} />
         </div>
-        <div>
-          <WinLossChart wins={winCount} losses={lossCount} />
-        </div>
+        <StrategyBreakdown data={strategyStats} />
       </div>
 
-      <MonthlyPnLChart data={monthlyPnL} />
+      <div className="grid gap-6 lg:grid-cols-2">
+        <MonthlyPnLChart data={monthlyPnL} />
+        <TickerBreakdown data={tickerStats} />
+      </div>
 
       <ROIChart data={cumulativePnL} />
-
-      <MonthlyROIChart data={monthlyPnL} />
     </div>
   );
 }

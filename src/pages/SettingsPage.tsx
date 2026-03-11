@@ -4,14 +4,13 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
-import { useTheme } from "@/hooks/useTheme";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useAccounts, addAccount, updateAccount, deleteAccount } from "@/hooks/useAccounts";
 import { exportTrades, importTrades, deleteAllTrades } from "@/lib/export";
 import { parseFidelityCSV, type FidelityImportResult } from "@/lib/fidelity";
 import { db } from "@/db";
 
 export function SettingsPage() {
-  const { theme, toggleTheme } = useTheme();
   const accounts = useAccounts();
   const fileRef = useRef<HTMLInputElement>(null);
   const fidelityFileRef = useRef<HTMLInputElement>(null);
@@ -22,6 +21,10 @@ export function SettingsPage() {
   const [newAccountSize, setNewAccountSize] = useState("");
   const [fidelityAccountId, setFidelityAccountId] = useState("");
 
+  // Confirm dialog state
+  const [deleteAllOpen, setDeleteAllOpen] = useState(false);
+  const [deleteAccountTarget, setDeleteAccountTarget] = useState<{ id: string; name: string } | null>(null);
+
   async function handleExport() {
     await exportTrades();
   }
@@ -29,6 +32,10 @@ export function SettingsPage() {
   async function handleImport() {
     const file = fileRef.current?.files?.[0];
     if (!file) return;
+    if (file.size > MAX_FILE_SIZE) {
+      setImportStatus("File is too large. Maximum size is 10 MB.");
+      return;
+    }
     try {
       const count = await importTrades(file);
       setImportStatus(`Imported ${count} trades successfully.`);
@@ -40,9 +47,15 @@ export function SettingsPage() {
     if (fileRef.current) fileRef.current.value = "";
   }
 
+  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+
   async function handleFidelityParse() {
     const file = fidelityFileRef.current?.files?.[0];
     if (!file) return;
+    if (file.size > MAX_FILE_SIZE) {
+      setFidelityStatus("File is too large. Maximum size is 10 MB.");
+      return;
+    }
     try {
       const text = await file.text();
       const result = parseFidelityCSV(text);
@@ -75,17 +88,19 @@ export function SettingsPage() {
     }
   }
 
-  async function handleDeleteAll() {
-    if (
-      confirm(
-        "Are you sure you want to delete ALL trades? This cannot be undone."
-      )
-    ) {
-      await deleteAllTrades();
-      setImportStatus("All trades deleted.");
-      setFidelityStatus("");
-      setFidelityPreview(null);
+  async function confirmDeleteAll() {
+    await deleteAllTrades();
+    setImportStatus("All trades deleted.");
+    setFidelityStatus("");
+    setFidelityPreview(null);
+    setDeleteAllOpen(false);
+  }
+
+  async function confirmDeleteAccount() {
+    if (deleteAccountTarget) {
+      await deleteAccount(deleteAccountTarget.id);
     }
+    setDeleteAccountTarget(null);
   }
 
   return (
@@ -93,21 +108,6 @@ export function SettingsPage() {
       <PageHeader title="Settings" />
 
       <div className="space-y-6 max-w-2xl">
-        <Card>
-          <h3 className="text-sm font-medium text-gray-300 mb-3">Appearance</h3>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-100">Theme</p>
-              <p className="text-xs text-gray-500">
-                Currently using {theme} mode
-              </p>
-            </div>
-            <Button variant="secondary" onClick={toggleTheme}>
-              Switch to {theme === "dark" ? "Light" : "Dark"}
-            </Button>
-          </div>
-        </Card>
-
         <Card>
           <h3 className="text-sm font-medium text-gray-300 mb-3">Accounts</h3>
           <p className="text-xs text-gray-500 mb-3">
@@ -145,11 +145,9 @@ export function SettingsPage() {
                     />
                   </div>
                   <button
-                    onClick={() => {
-                      if (confirm(`Delete account "${account.name}"?`)) {
-                        deleteAccount(account.id);
-                      }
-                    }}
+                    onClick={() =>
+                      setDeleteAccountTarget({ id: account.id, name: account.name })
+                    }
                     className="rounded p-1 text-red-400 hover:bg-red-500/10 cursor-pointer"
                   >
                     <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -336,11 +334,31 @@ export function SettingsPage() {
           <p className="text-xs text-gray-500 mb-3">
             Permanently delete all trade data. This cannot be undone.
           </p>
-          <Button variant="danger" onClick={handleDeleteAll}>
+          <Button variant="danger" onClick={() => setDeleteAllOpen(true)}>
             Delete All Trades
           </Button>
         </Card>
       </div>
+
+      <ConfirmDialog
+        open={deleteAllOpen}
+        onClose={() => setDeleteAllOpen(false)}
+        onConfirm={confirmDeleteAll}
+        title="Delete All Trades"
+        message="Are you sure you want to delete ALL trades? This action is permanent and cannot be undone."
+        confirmLabel="Delete All"
+        variant="danger"
+      />
+
+      <ConfirmDialog
+        open={deleteAccountTarget !== null}
+        onClose={() => setDeleteAccountTarget(null)}
+        onConfirm={confirmDeleteAccount}
+        title="Delete Account"
+        message={`Delete account "${deleteAccountTarget?.name ?? ""}"? Trades linked to this account will be unlinked but not deleted.`}
+        confirmLabel="Delete"
+        variant="danger"
+      />
     </div>
   );
 }

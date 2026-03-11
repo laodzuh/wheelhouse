@@ -1,0 +1,32 @@
+import { z } from "zod";
+import { OPTION_TYPES, ACTIONS, STATUSES, STRATEGIES } from "./types";
+
+export const TradeSchema = z.object({
+  id: z.string().min(1),
+  groupId: z.string().nullable(),
+  dateOpened: z.string().min(1),
+  dateClosed: z.string().nullable(),
+  ticker: z.string().min(1).max(10),
+  optionType: z.enum(OPTION_TYPES),
+  action: z.enum(ACTIONS),
+  strikePrice: z.number().nonnegative(),
+  expirationDate: z.string().min(1),
+  contracts: z.number().int().positive(),
+  premiumPerContract: z.number().nonnegative(),
+  closePrice: z.number().nonnegative().nullable(),
+  underlyingPriceAtEntry: z.number().nonnegative(),
+  underlyingPriceAtExit: z.number().nonnegative().nullable(),
+  fees: z.number().nonnegative(),
+  strategy: z.enum(STRATEGIES).or(z.string().min(1)),
+  notes: z.string().max(5000),
+  status: z.enum(STATUSES),
+  createdAt: z.string().min(1),
+  updatedAt: z.string().min(1),
+  assignedShares: z.number().int().nonnegative().nullable(),
+  assignedCostBasis: z.number().nonnegative().nullable(),
+  sharesSoldPrice: z.number().nonnegative().nullable(),
+  sharesSoldDate: z.string().nullable(),
+  sharesPnL: z.number().nullable(),
+  accountId: z.string().nullable(),
+  positionId: z.string().nullable(),
+});

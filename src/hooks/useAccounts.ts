@@ -21,5 +21,8 @@ export async function updateAccount(
 }
 
 export async function deleteAccount(id: string): Promise<void> {
-  await db.accounts.delete(id);
+  await db.transaction("rw", db.accounts, db.trades, async () => {
+    await db.trades.where("accountId").equals(id).modify({ accountId: null });
+    await db.accounts.delete(id);
+  });
 }

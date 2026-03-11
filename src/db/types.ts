@@ -39,6 +39,29 @@ export const STRATEGIES = [
 ] as const;
 export type Strategy = (typeof STRATEGIES)[number];
 
+export const POSITION_PHASES = ["selling_puts", "holding_shares", "completed"] as const;
+export type PositionPhase = (typeof POSITION_PHASES)[number];
+
+export const POSITION_STRATEGIES = ["wheel", "covered_call"] as const;
+export type PositionStrategy = (typeof POSITION_STRATEGIES)[number];
+
+export interface Position {
+  id: string;
+  ticker: string;
+  strategy: PositionStrategy;
+  phase: PositionPhase;
+  shareCount: number | null;
+  shareCostBasis: number | null;
+  assignedDate: string | null;
+  soldPrice: number | null;
+  entryDate: string;
+  completedDate: string | null;
+  accountId: string | null;
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Account {
   id: string;
   name: string;
@@ -72,4 +95,5 @@ export interface Trade {
   sharesSoldDate: string | null;
   sharesPnL: number | null;
   accountId: string | null;
+  positionId: string | null;
 }

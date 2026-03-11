@@ -1,4 +1,5 @@
 import type { Trade } from "@/db/types";
+import { TradeSchema } from "@/db/schema";
 import { generateId, nowISO } from "@/lib/utils";
 
 export interface FidelityImportResult {
@@ -269,10 +270,23 @@ export function parseFidelityCSV(csvText: string): FidelityImportResult {
       sharesSoldDate: null,
       sharesPnL: null,
       accountId: null,
+      positionId: null,
     });
   }
 
   trades.sort((a, b) => a.dateOpened.localeCompare(b.dateOpened));
 
-  return { trades, fullCount, partialCount, skippedCount };
+  // Validate all constructed trades against the schema
+  const validated = trades.map((trade, i) => {
+    const result = TradeSchema.safeParse(trade);
+    if (!result.success) {
+      const issue = result.error.issues[0];
+      throw new Error(
+        `Invalid trade data for ${trade.ticker} (row ${i + 1}): ${issue.message} (field: ${issue.path.join(".")})`
+      );
+    }
+    return result.data as Trade;
+  });
+
+  return { trades: validated, fullCount, partialCount, skippedCount };
 }

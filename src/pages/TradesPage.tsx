@@ -4,6 +4,8 @@ import { useAccounts } from "@/hooks/useAccounts";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { TradeTableSkeleton } from "@/components/ui/LoadingSkeleton";
 import { TradeForm } from "@/components/trades/TradeForm";
 import { TradeTable } from "@/components/trades/TradeTable";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -17,6 +19,10 @@ export function TradesPage() {
   const [editing, setEditing] = useState<Trade | null>(null);
   const [rollPrefill, setRollPrefill] = useState<Partial<Trade> | null>(null);
 
+  // Confirm dialog state
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [rollTarget, setRollTarget] = useState<Trade | null>(null);
+
   function openAdd() {
     setEditing(null);
     setRollPrefill(null);
@@ -29,19 +35,31 @@ export function TradesPage() {
     setModalOpen(true);
   }
 
-  async function handleDelete(id: string) {
-    if (confirm("Delete this trade?")) {
-      await deleteTrade(id);
-    }
+  function handleDelete(id: string) {
+    setDeleteTarget(id);
   }
 
-  async function handleRoll(trade: Trade) {
-    const closePrice = prompt("Enter the close price for the current position:");
-    if (closePrice === null) return;
+  async function confirmDelete() {
+    if (deleteTarget) {
+      await deleteTrade(deleteTarget);
+    }
+    setDeleteTarget(null);
+  }
+
+  function handleRoll(trade: Trade) {
+    setRollTarget(trade);
+  }
+
+  async function confirmRoll(inputValue?: string) {
+    if (!rollTarget || !inputValue) return;
+
+    const closePrice = Number(inputValue);
+    const trade = rollTarget;
+    setRollTarget(null);
 
     await updateTrade(trade.id, {
       status: "Rolled",
-      closePrice: Number(closePrice),
+      closePrice,
       dateClosed: new Date().toISOString().split("T")[0],
     });
 
@@ -76,7 +94,14 @@ export function TradesPage() {
     setRollPrefill(null);
   }
 
-  if (!trades) return null;
+  if (!trades) {
+    return (
+      <div>
+        <PageHeader title="Trade Log" />
+        <TradeTableSkeleton />
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -127,6 +152,30 @@ export function TradesPage() {
           }}
         />
       </Modal>
+
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+        title="Delete Trade"
+        message="Are you sure you want to delete this trade? This action cannot be undone."
+        confirmLabel="Delete"
+        variant="danger"
+      />
+
+      <ConfirmDialog
+        open={rollTarget !== null}
+        onClose={() => setRollTarget(null)}
+        onConfirm={confirmRoll}
+        title="Roll Position"
+        message="Enter the close price for the current position before rolling to a new leg."
+        confirmLabel="Roll"
+        input={{
+          label: "Close Price",
+          type: "number",
+          placeholder: "0.00",
+        }}
+      />
     </div>
   );
 }
