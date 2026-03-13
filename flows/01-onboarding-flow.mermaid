@@ -1,0 +1,15 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#E8F5E9', 'primaryTextColor': '#1B4D3E', 'primaryBorderColor': '#1B4D3E', 'lineColor': '#2E7D32', 'secondaryColor': '#FFF8E1', 'tertiaryColor': '#F3E5F5'}}}%%
+
+flowchart LR
+    A["Welcome Screen"] -->|"Get Started"| B["Who Are You"]
+    B -->|"Name, Experience Level"| C["Why Are You Here"]
+    C -->|"Goals, Motivations"| D["Income Targets"]
+    D -->|"Monthly/Annual Goals"| E["Your Trading Life"]
+    E -->|"Brokerage, Capital Range"| F["Risk & Comfort"]
+    F -->|"Drawdown Temperament,\nPosition Sizing"| G["Time & Patience"]
+    G -->|"Activity Level,\nPatience Style"| H["Stock Picking"]
+    H -->|"What Draws You\nto a Stock"| I["Strategy Reveal"]
+    I -->|"Here Is Your\nFirst Strategy Draft"| J["Name & Review"]
+    J -->|"Looks Good"| K["Dashboard"]
+    J -->|"Let Me Tweak"| L["Strategy Editor"]
+    L -->|"Save"| K

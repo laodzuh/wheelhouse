@@ -1,0 +1,20 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#E8F5E9', 'primaryTextColor': '#1B4D3E', 'primaryBorderColor': '#1B4D3E', 'lineColor': '#2E7D32', 'secondaryColor': '#FFF8E1', 'tertiaryColor': '#F3E5F5'}}}%%
+
+flowchart LR
+    A["Dashboard\n(Tap a Wheel)"] -->|"Choose Stock"| B["Ticker Thesis View\n(See Thesis + Wheel)"]
+
+    B -->|"Tap Idle Dot\n(New Contract)"| C["Trade Type\n(New CSP)"]
+    B -->|"Tap Active Dot\n(Existing Contract)"| D["Trade Type\n(Based on Phase)"]
+
+    C --> E["Trade Details"]
+    D --> E
+
+    E -->|"Strike, Premium,\nExpiry, Delta"| F["Smart Nudges\n(Live Feedback)"]
+
+    F -->|"Deviation?"| G{"Aligned with\nStrategy & Thesis?"}
+
+    G -->|"Yes"| I["Save Trade"]
+    G -->|"No"| H["Enter Reason\nfor Deviation"]
+    H --> I
+
+    I -->|"Dot Moves on Ring\nHero Metrics Update"| B

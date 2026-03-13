@@ -1,0 +1,13 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#E8F5E9', 'primaryTextColor': '#1B4D3E', 'primaryBorderColor': '#1B4D3E', 'lineColor': '#2E7D32', 'secondaryColor': '#FFF8E1', 'tertiaryColor': '#F3E5F5'}}}%%
+
+flowchart LR
+    D["Dashboard\n(Add New Ticker)"] -->|"Enter Ticker Symbol"| A["Strategy Alignment\nCheck"]
+    A -->|"Aligned"| C["Conviction\n(Prose Layer)"]
+    A -->|"Misaligned\n(Flagged)"| B["Misalignment\nAcknowledgment"]
+    B -->|"Proceed Anyway"| C
+    B -->|"Pick Different\nTicker"| D
+    C -->|"Why This Stock?\nWhat Would Change\nYour Mind?"| E["Per-Ticker\nRisk & Comfort"]
+    E -->|"Assignment Comfort\nMax Loss\nPosition Sizing"| F["Data Fields\n(Guardrails)"]
+    F -->|"Target Exit, Strike\nFloor, Delta Range,\nDTE Preference"| G["AI Review"]
+    G -->|"Claude Reviews\nThesis & Flags\nGaps or Questions"| H["Name & Save"]
+    H -->|"Thesis Saved"| I["Ticker Thesis View\n(Wheel Created)"]

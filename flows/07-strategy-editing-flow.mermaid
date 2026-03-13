@@ -1,0 +1,29 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#E8F5E9', 'primaryTextColor': '#1B4D3E', 'primaryBorderColor': '#1B4D3E', 'lineColor': '#2E7D32', 'secondaryColor': '#FFF8E1', 'tertiaryColor': '#F3E5F5'}}}%%
+
+flowchart LR
+    subgraph Entry Points
+        D["Dashboard\n(View Strategy)"]
+        E["Evaluation\n(Review Strategy)"]
+        T["Ticker Thesis\n(Check Alignment)"]
+    end
+
+    D --> S["Strategy View\n(Read Mode)"]
+    E --> S
+    T --> S
+
+    S -->|"Edit"| ED["Strategy Editor\n(Edit Mode)"]
+
+    ED -->|"Modify\nParameters"| N["Smart Nudges\n(Impact Preview)"]
+    N -->|"Review Changes"| R["Change Summary\n(Before/After + Impact)"]
+
+    R -->|"Save"| V["Version Created\n(Old Strategy Archived)"]
+    R -->|"Discard"| S
+
+    V --> S
+
+    S -->|"View History"| H["Version History\n(Past Strategies)"]
+    H -->|"Compare"| C["Side-by-Side\nComparison"]
+    H -->|"Back"| S
+
+    ED -->|"Chat with Claude"| AI["AI Discussion\n(Strategy Review)"]
+    AI -->|"Back to Editing"| ED

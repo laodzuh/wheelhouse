@@ -1,0 +1,22 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#E8F5E9', 'primaryTextColor': '#1B4D3E', 'primaryBorderColor': '#1B4D3E', 'lineColor': '#2E7D32', 'secondaryColor': '#FFF8E1', 'tertiaryColor': '#F3E5F5'}}}%%
+
+flowchart LR
+    D["Dashboard\n(Hero Metrics +\nActive Wheels)"] -->|"Tap a Wheel"| TT["Ticker Thesis\n(Per-Stock Deep Dive)"]
+    D -->|"View Strategy"| S["Strategy\n(Your Rules)"]
+    D -->|"View Performance"| E["Evaluation\n(Strategic Mirror)"]
+    D -->|"Add New Ticker"| NT["New Thesis\n(Guided Creation)"]
+
+    TT -->|"Tap a Dot"| TE["Trade Entry"]
+    TT -->|"Check Strategy\nAlignment"| S
+    TT -->|"View Ticker\nPerformance"| E
+
+    TE -->|"Trade Saved"| TT
+
+    S -->|"Back"| D
+    S -->|"View How\nStrategy Is Performing"| E
+
+    E -->|"Drill Into\na Ticker"| TT
+    E -->|"Review Strategy"| S
+    E -->|"Back"| D
+
+    NT -->|"Thesis Saved"| TT

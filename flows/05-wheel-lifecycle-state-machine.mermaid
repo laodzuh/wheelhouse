@@ -1,0 +1,23 @@
+stateDiagram-v2
+    direction LR
+
+    state "Idle (Cash)" as IC
+    state "Idle (Shares)" as IS
+    state "CSP Active" as CSP
+    state "CC Active" as CC
+
+    [*] --> IC : Dot created\n(thesis setup)
+    [*] --> IS : Dot created\n(user already owns shares)
+
+    IC --> CSP : Sell new CSP
+    IS --> CC : Sell new CC
+
+    CSP --> IS : Assigned\n(now holding shares)
+    CSP --> IC : Expired\n(premium collected,\ncapital freed)
+    CSP --> IC : Closed\n(bought back put)
+    CSP --> CSP : Rolled\n(new strike/expiry)
+
+    CC --> IC : Called Away\n(shares sold,\nback to cash)
+    CC --> IS : Expired\n(premium collected,\nstill holding shares)
+    CC --> IS : Closed\n(bought back call,\nstill holding shares)
+    CC --> CC : Rolled\n(new strike/expiry)
