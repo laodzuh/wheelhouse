@@ -1,0 +1,17 @@
+[build]
+  publish = "dist"
+  command = "npm run build"
+
+# Route API calls to the serverless function BEFORE the SPA catch-all.
+# Netlify processes redirects top-to-bottom, and redirects run before
+# functions, so this rewrite must come first.
+[[redirects]]
+  from = "/api/market-data"
+  to = "/.netlify/functions/market-api"
+  status = 200
+
+# SPA routing — everything else goes to index.html for React Router
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

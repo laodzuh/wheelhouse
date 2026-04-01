@@ -1,0 +1,41 @@
+@import "tailwindcss";
+
+/*
+  Wheelhouse Design Tokens
+  Dark-first UI — slate palette with warm accents.
+  These will evolve as we build screens, but starting with a foundation.
+*/
+
+@theme {
+  /* Core palette */
+  --color-wh-bg: #0f172a;
+  --color-wh-surface: #1e293b;
+  --color-wh-surface-raised: #334155;
+  --color-wh-border: #475569;
+  --color-wh-text: #f1f5f9;
+  --color-wh-text-muted: #94a3b8;
+
+  /* Accent — used for primary actions, active states */
+  --color-wh-accent: #38bdf8;
+  --color-wh-accent-hover: #7dd3fc;
+
+  /* Semantic — for nudges, deviations, success states */
+  --color-wh-success: #4ade80;
+  --color-wh-warning: #fbbf24;
+  --color-wh-danger: #f87171;
+
+  /* Wheel states */
+  --color-wh-idle-cash: #94a3b8;
+  --color-wh-idle-shares: #38bdf8;
+  --color-wh-csp-active: #a78bfa;
+  --color-wh-cc-active: #34d399;
+}
+
+/* Base styles */
+body {
+  background-color: var(--color-wh-bg);
+  color: var(--color-wh-text);
+  font-family: system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
