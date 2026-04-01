@@ -1,0 +1,4 @@
+# Root-level config — tells Netlify to use app/ as the base directory.
+# Build, redirect, and function settings are in app/netlify.toml.
+[build]
+  base = "app"
