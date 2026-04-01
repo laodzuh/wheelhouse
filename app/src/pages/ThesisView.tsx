@@ -15,7 +15,7 @@ export function ThesisView() {
   const dots = useActiveDots(wheel?.id ?? null);
   const trades = useTradeEventsForThesis(Number(tickerId));
   const strategy = useActiveStrategy();
-  const { quote, loading: quoteLoading } = useStockQuote(thesis?.ticker ?? null);
+  const { quote, loading: quoteLoading } = useStockQuote(thesis?.ticker ?? null, thesis?.isin);
 
   if (thesis === undefined || wheel === undefined || dots === undefined || trades === undefined) {
     return (

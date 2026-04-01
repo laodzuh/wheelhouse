@@ -118,6 +118,7 @@ export interface TickerThesis {
   userId: number;
   strategyId: number;
   ticker: string;         // e.g. "AAPL"
+  isin?: string;          // e.g. "US0378331005" — used for Eulerpool market data lookups
   name: string;           // e.g. "AAPL Wheel"
   status: ThesisStatus;
   dataFields: ThesisDataFields;

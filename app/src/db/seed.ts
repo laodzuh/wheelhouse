@@ -203,6 +203,16 @@ export async function seedDatabase() {
       WFC: 7500,
       TEM: 0,
     };
+    // ISINs for Eulerpool market data lookups
+    const tickerISIN: Record<string, string> = {
+      WMT: "US9311421039",
+      OMF: "US68268W1036",
+      SNAP: "US83304A1060",
+      PINS: "US72352L1061",
+      NOK: "FI0009000681",
+      WFC: "US9497461015",
+      TEM: "US88025U1097",
+    };
     const tickers = Object.keys(tickerCapital);
     const theses: { [key: string]: number } = {};
     const wheels: { [key: string]: number } = {};
@@ -212,6 +222,7 @@ export async function seedDatabase() {
         userId,
         strategyId,
         ticker,
+        isin: tickerISIN[ticker],
         name: `${ticker} Wheel`,
         status: ticker === "TEM" ? "closed" : "active",
         dataFields: {

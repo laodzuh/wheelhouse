@@ -181,23 +181,52 @@ export async function getStockQuote(
 }
 
 function normalizeQuote(ticker: string, raw: Record<string, unknown>): StockQuote | null {
-  const price = extractNumber(raw, ["price", "last", "lastPrice", "close", "c"]);
-  if (price === null) return null;
+  // Eulerpool /equity/quotes returns a time series: { "0": {timestamp, price}, "1": {...}, ... }
+  // Extract entries, sort by timestamp, and use the latest two for price + change.
+  const entries: { timestamp: number; price: number }[] = [];
 
-  const prevClose = extractNumber(raw, ["previousClose", "prevClose", "pc"]);
-  const change = extractNumber(raw, ["change", "d"]) ?? (prevClose !== null ? price - prevClose : 0);
-  const changePercent = extractNumber(raw, ["changePercent", "dp", "changePct"]) ??
-    (prevClose && prevClose > 0 ? ((price - prevClose) / prevClose) * 100 : 0);
+  for (const key of Object.keys(raw)) {
+    if (key === "_debug") continue;
+    const val = raw[key];
+    if (typeof val === "object" && val !== null && "price" in val && "timestamp" in val) {
+      const entry = val as { timestamp: number; price: number };
+      if (typeof entry.price === "number" && typeof entry.timestamp === "number") {
+        entries.push(entry);
+      }
+    }
+  }
+
+  // If no time-series entries, try the legacy flat format
+  if (entries.length === 0) {
+    const price = extractNumber(raw, ["price", "last", "lastPrice", "close", "c"]);
+    if (price === null) return null;
+    const prevClose = extractNumber(raw, ["previousClose", "prevClose", "pc"]);
+    const change = extractNumber(raw, ["change", "d"]) ?? (prevClose !== null ? price - prevClose : 0);
+    const changePercent = extractNumber(raw, ["changePercent", "dp", "changePct"]) ??
+      (prevClose && prevClose > 0 ? ((price - prevClose) / prevClose) * 100 : 0);
+    return { ticker: ticker.toUpperCase(), price, change, changePercent, high: null, low: null, volume: null, timestamp: new Date().toISOString() };
+  }
+
+  // Sort by timestamp descending to get the most recent entries
+  entries.sort((a, b) => b.timestamp - a.timestamp);
+
+  const latest = entries[0]!;
+  const previous = entries.length > 1 ? entries[1]! : null;
+
+  const change = previous ? latest.price - previous.price : 0;
+  const changePercent = previous && previous.price > 0
+    ? ((latest.price - previous.price) / previous.price) * 100
+    : 0;
 
   return {
     ticker: ticker.toUpperCase(),
-    price,
+    price: latest.price,
     change,
     changePercent,
-    high: extractNumber(raw, ["high", "h", "dayHigh"]),
-    low: extractNumber(raw, ["low", "l", "dayLow"]),
-    volume: extractNumber(raw, ["volume", "v"]),
-    timestamp: new Date().toISOString(),
+    high: null,
+    low: null,
+    volume: null,
+    timestamp: new Date(latest.timestamp).toISOString(),
   };
 }
 

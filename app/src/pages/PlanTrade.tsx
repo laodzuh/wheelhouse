@@ -23,13 +23,14 @@ export function PlanTrade() {
   const strategy = useActiveStrategy();
   const tradeType = (searchParams.get("type") || "csp") as "csp" | "cc";
 
-  const { quote } = useStockQuote(thesis?.ticker ?? null);
+  const { quote } = useStockQuote(thesis?.ticker ?? null, thesis?.isin);
 
   // Date picker for expiration
   const [selectedExpiry, setSelectedExpiry] = useState("");
   const { chain, loading: chainLoading, error: chainError } = useOptionsChain(
     thesis?.ticker ?? null,
-    selectedExpiry || undefined
+    selectedExpiry || undefined,
+    thesis?.isin
   );
 
   if (thesis === undefined || strategy === undefined) {

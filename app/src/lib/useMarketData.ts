@@ -1,28 +1,35 @@
 /**
  * React hooks for market data.
  * Fetches on mount, caches via the market-data service layer.
+ *
+ * Hooks accept either an ISIN (preferred) or a ticker symbol.
+ * If only a ticker is provided, the service layer will auto-resolve
+ * it to an ISIN via the Eulerpool search endpoint.
  */
 
 import { useState, useEffect } from "react";
 import { getStockQuote, getOptionsChain, type StockQuote, type OptionsChain } from "./market-data";
 
 /**
- * Fetch a live stock quote for a ticker.
- * Returns { quote, loading, error }.
+ * Fetch a live stock quote.
+ * Pass `isin` for fast direct lookup, or just `ticker` to auto-resolve.
  */
-export function useStockQuote(ticker: string | null) {
+export function useStockQuote(ticker: string | null, isin?: string | null) {
   const [quote, setQuote] = useState<StockQuote | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Use ISIN if available, fall back to ticker
+  const identifier = isin || ticker;
+
   useEffect(() => {
-    if (!ticker) return;
+    if (!identifier) return;
 
     let cancelled = false;
     setLoading(true);
     setError(null);
 
-    getStockQuote(ticker).then((result) => {
+    getStockQuote(identifier, ticker ?? undefined).then((result) => {
       if (cancelled) return;
       setQuote(result);
       setLoading(false);
@@ -35,28 +42,30 @@ export function useStockQuote(ticker: string | null) {
     });
 
     return () => { cancelled = true; };
-  }, [ticker]);
+  }, [identifier, ticker]);
 
   return { quote, loading, error };
 }
 
 /**
- * Fetch an options chain for a ticker + expiration.
- * Returns { chain, loading, error }.
+ * Fetch an options chain.
+ * Pass `isin` for fast direct lookup, or just `ticker` to auto-resolve.
  */
-export function useOptionsChain(ticker: string | null, expiration?: string) {
+export function useOptionsChain(ticker: string | null, expiration?: string, isin?: string | null) {
   const [chain, setChain] = useState<OptionsChain | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const identifier = isin || ticker;
+
   useEffect(() => {
-    if (!ticker) return;
+    if (!identifier) return;
 
     let cancelled = false;
     setLoading(true);
     setError(null);
 
-    getOptionsChain(ticker, expiration).then((result) => {
+    getOptionsChain(identifier, expiration, ticker ?? undefined).then((result) => {
       if (cancelled) return;
       setChain(result);
       setLoading(false);
@@ -69,7 +78,7 @@ export function useOptionsChain(ticker: string | null, expiration?: string) {
     });
 
     return () => { cancelled = true; };
-  }, [ticker, expiration]);
+  }, [identifier, ticker, expiration]);
 
   return { chain, loading, error };
 }
