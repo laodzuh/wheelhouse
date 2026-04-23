@@ -75,3 +75,45 @@ export const SYNC_DATA_TABLE_NAMES = [
   "tradeEvents",
   "aiInteractions",
 ] as const;
+
+// ─── Data-write event bus ──────────────────────────────────────────
+//
+// Hooks are installed at module load so they're in place before any
+// component mounts. Sync (or anything else) subscribes via onDataWrite.
+
+const writeListeners = new Set<() => void>();
+
+export function onDataWrite(fn: () => void): () => void {
+  writeListeners.add(fn);
+  return () => writeListeners.delete(fn);
+}
+
+function fireWrite(reason: string): void {
+  console.info(`[sync] ${reason}`);
+  writeListeners.forEach((l) => {
+    try {
+      l();
+    } catch (err) {
+      console.error("[sync] write listener threw:", err);
+    }
+  });
+}
+
+const syncTables = [
+  db.userProfile,
+  db.strategies,
+  db.tickerTheses,
+  db.wheels,
+  db.dots,
+  db.tradeEvents,
+  db.aiInteractions,
+];
+
+for (const table of syncTables) {
+  const name = table.name;
+  table.hook("creating", () => fireWrite(`creating on ${name}`));
+  table.hook("updating", () => fireWrite(`updating on ${name}`));
+  table.hook("deleting", () => fireWrite(`deleting on ${name}`));
+}
+
+console.info("[sync] hooks installed at module load for", syncTables.map((t) => t.name).join(", "));

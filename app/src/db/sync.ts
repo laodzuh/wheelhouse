@@ -1,6 +1,6 @@
 import type { SyncState } from "@/lib/types";
 import { applyBackup, serializeBackup, type BackupData } from "./backup";
-import { SYNC_DATA_TABLE_NAMES, db } from "./database";
+import { db, onDataWrite } from "./database";
 
 const AUTO_PUSH_DEBOUNCE_MS = 3000;
 
@@ -39,30 +39,16 @@ async function getState(): Promise<SyncState> {
 
 let suppressChangeTracking = false;
 let pushTimer: ReturnType<typeof setTimeout> | null = null;
-let hooksInstalled = false;
+let subscribed = false;
 
-function installWriteHooks(): void {
-  if (hooksInstalled) return;
-  hooksInstalled = true;
-  for (const name of SYNC_DATA_TABLE_NAMES) {
-    const table = db.table(name);
-    table.hook("creating", (_pk, _obj, _trans) => {
-      onLocalWrite(name, "creating");
-    });
-    table.hook("updating", (_mods, _pk, _obj, _trans) => {
-      onLocalWrite(name, "updating");
-    });
-    table.hook("deleting", (_pk, _obj, _trans) => {
-      onLocalWrite(name, "deleting");
-    });
-  }
-  console.info("[sync] write hooks installed on", SYNC_DATA_TABLE_NAMES.join(", "));
-}
-
-function onLocalWrite(tableName: string, op: string): void {
-  if (suppressChangeTracking) return;
-  console.info(`[sync] ${op} on ${tableName} → marking dirty, scheduling push`);
-  void markDirtyAndSchedule();
+function subscribeToWrites(): void {
+  if (subscribed) return;
+  subscribed = true;
+  onDataWrite(() => {
+    if (suppressChangeTracking) return;
+    console.info("[sync] write → marking dirty, scheduling push");
+    void markDirtyAndSchedule();
+  });
 }
 
 async function markDirtyAndSchedule(): Promise<void> {
@@ -252,8 +238,10 @@ export async function push(): Promise<PushResult> {
 }
 
 /**
- * Run on app start and on manual "Sync now". Pushes local-only changes
- * first (so they can't be clobbered by a pull), then pulls to catch up.
+ * Run on app start and on manual "Sync now". Push local-only changes first
+ * (so they can't be clobbered by a pull), then pull ONLY if the server has
+ * moved ahead of our last-known version. Pressing Sync on a clean device
+ * while the server is at the same version does nothing — it can't revert you.
  */
 export async function syncNow(): Promise<void> {
   const state = await getState();
@@ -261,11 +249,28 @@ export async function syncNow(): Promise<void> {
 
   if (state.hasUnpushedChanges) {
     const pushResult = await push();
-    if (pushResult.conflict) return; // leave in conflict state; user resolves
+    if (pushResult.conflict) return;
     if (!pushResult.ok) return;
   }
 
-  await pull();
+  // Peek the server's current version before pulling. If we're already
+  // in sync, skip the pull — otherwise we'd overwrite local with identical
+  // data (harmless on the happy path, disastrous if anything desynced the
+  // `hasUnpushedChanges` flag).
+  try {
+    const res = await request("/sync/version");
+    if (!res.ok) return;
+    const { version } = (await res.json()) as { version: number };
+    const latest = await getState();
+    if (version > latest.lastServerVersion) {
+      await pull();
+    } else {
+      await patch({ status: "idle", lastError: null });
+    }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Network error";
+    await patch({ status: "offline", lastError: msg });
+  }
 }
 
 /**
@@ -351,7 +356,7 @@ export function initSync(): Promise<void> {
   if (bootPromise) return bootPromise;
   bootPromise = (async () => {
     await ensureSyncState();
-    installWriteHooks();
+    subscribeToWrites();
     installFocusListener();
     const state = await getState();
     if (state.serverUrl && state.secret) {
