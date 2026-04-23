@@ -46,14 +46,22 @@ function installWriteHooks(): void {
   hooksInstalled = true;
   for (const name of SYNC_DATA_TABLE_NAMES) {
     const table = db.table(name);
-    table.hook("creating", onLocalWrite);
-    table.hook("updating", onLocalWrite);
-    table.hook("deleting", onLocalWrite);
+    table.hook("creating", (_pk, _obj, _trans) => {
+      onLocalWrite(name, "creating");
+    });
+    table.hook("updating", (_mods, _pk, _obj, _trans) => {
+      onLocalWrite(name, "updating");
+    });
+    table.hook("deleting", (_pk, _obj, _trans) => {
+      onLocalWrite(name, "deleting");
+    });
   }
+  console.info("[sync] write hooks installed on", SYNC_DATA_TABLE_NAMES.join(", "));
 }
 
-function onLocalWrite(): void {
+function onLocalWrite(tableName: string, op: string): void {
   if (suppressChangeTracking) return;
+  console.info(`[sync] ${op} on ${tableName} → marking dirty, scheduling push`);
   void markDirtyAndSchedule();
 }
 
@@ -284,19 +292,67 @@ export async function resolveConflictTakeRemote(): Promise<PullResult> {
   return pull();
 }
 
+// ─── Focus-triggered pull ──────────────────────────────────────────
+
+let focusListenersInstalled = false;
+let focusSyncTimer: ReturnType<typeof setTimeout> | null = null;
+let focusSyncInFlight = false;
+
+function installFocusListener(): void {
+  if (focusListenersInstalled) return;
+  if (typeof document === "undefined" || typeof window === "undefined") return;
+  focusListenersInstalled = true;
+  const schedule = () => {
+    if (focusSyncTimer) return;
+    focusSyncTimer = setTimeout(() => {
+      focusSyncTimer = null;
+      void syncOnFocus();
+    }, 100);
+  };
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") schedule();
+  });
+  window.addEventListener("focus", schedule);
+}
+
+async function syncOnFocus(): Promise<void> {
+  if (focusSyncInFlight) return;
+  const state = await db.syncState.get(1);
+  if (!state?.serverUrl || !state.secret) return;
+  if (state.status === "conflict" || state.status === "syncing") return;
+
+  focusSyncInFlight = true;
+  try {
+    const res = await request("/sync/version");
+    if (!res.ok) return;
+    const { version } = (await res.json()) as { version: number };
+    const remoteMoved = version > state.lastServerVersion;
+    if (remoteMoved || state.hasUnpushedChanges) {
+      await syncNow();
+    }
+  } catch {
+    // Silent on focus path — avoid spamming error toasts when the tailnet
+    // box happens to be asleep.
+  } finally {
+    focusSyncInFlight = false;
+  }
+}
+
 // ─── Boot ──────────────────────────────────────────────────────────
 
 let bootPromise: Promise<void> | null = null;
 
 /**
  * Call once at app startup. Ensures the syncState row exists, installs
- * Dexie write hooks for auto-push, and kicks off a sync if configured.
+ * Dexie write hooks for auto-push + window-focus listener for auto-pull,
+ * and kicks off a sync if configured.
  */
 export function initSync(): Promise<void> {
   if (bootPromise) return bootPromise;
   bootPromise = (async () => {
     await ensureSyncState();
     installWriteHooks();
+    installFocusListener();
     const state = await getState();
     if (state.serverUrl && state.secret) {
       await syncNow();
