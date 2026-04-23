@@ -1,13 +1,15 @@
 /**
  * Database backup & restore.
  *
- * Export: dumps all tables to a JSON blob and triggers a file download.
- * Import: reads a JSON file and replaces all tables with the imported data.
+ * `serializeBackup` and `applyBackup` are the reusable primitives —
+ * both the manual file export/import flow and the sync push/pull flow
+ * build on them. Only data tables are included; the device-local
+ * `syncState` (holds the sync URL and secret) is never touched.
  */
 
 import { db } from "./database";
 
-interface BackupData {
+export interface BackupData {
   version: 1;
   exportedAt: string;
   tables: {
@@ -21,11 +23,8 @@ interface BackupData {
   };
 }
 
-/**
- * Export the entire database as a JSON download.
- */
-export async function exportDatabase(): Promise<void> {
-  const data: BackupData = {
+export async function serializeBackup(): Promise<BackupData> {
+  return {
     version: 1,
     exportedAt: new Date().toISOString(),
     tables: {
@@ -38,39 +37,25 @@ export async function exportDatabase(): Promise<void> {
       aiInteractions: await db.aiInteractions.toArray(),
     },
   };
-
-  const json = JSON.stringify(data, null, 2);
-  const blob = new Blob([json], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `wheelhouse-backup-${new Date().toISOString().slice(0, 10)}.json`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
 }
 
-/**
- * Import a backup file, replacing all existing data.
- * Returns true on success, throws on failure.
- */
-export async function importDatabase(file: File): Promise<void> {
-  const text = await file.text();
-  const data: BackupData = JSON.parse(text);
-
+export async function applyBackup(data: BackupData): Promise<void> {
   if (!data.version || !data.tables) {
-    throw new Error("Invalid backup file format");
+    throw new Error("Invalid backup format");
   }
-
-  // Clear all tables
-  await db.transaction("rw", db.tables, async () => {
-    for (const table of db.tables) {
+  const dataTables = [
+    db.userProfile,
+    db.strategies,
+    db.tickerTheses,
+    db.wheels,
+    db.dots,
+    db.tradeEvents,
+    db.aiInteractions,
+  ];
+  await db.transaction("rw", dataTables, async () => {
+    for (const table of dataTables) {
       await table.clear();
     }
-
-    // Restore each table
     if (data.tables.userProfile?.length) {
       await db.userProfile.bulkAdd(data.tables.userProfile as never[]);
     }
@@ -93,4 +78,25 @@ export async function importDatabase(file: File): Promise<void> {
       await db.aiInteractions.bulkAdd(data.tables.aiInteractions as never[]);
     }
   });
+}
+
+export async function exportDatabase(): Promise<void> {
+  const data = await serializeBackup();
+  const json = JSON.stringify(data, null, 2);
+  const blob = new Blob([json], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `wheelhouse-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+export async function importDatabase(file: File): Promise<void> {
+  const text = await file.text();
+  const data: BackupData = JSON.parse(text);
+  await applyBackup(data);
 }

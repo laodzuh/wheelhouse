@@ -128,3 +128,16 @@ export function useRecentTradeEvents(limit: number = 20) {
     db.tradeEvents.orderBy("createdAt").reverse().limit(limit).toArray()
   );
 }
+
+// ─── Sync State ────────────────────────────────────────────────────
+
+/**
+ * Returns the singleton sync state row. Undefined while loading;
+ * null if the row doesn't exist yet (briefly, before initSync runs).
+ */
+export function useSyncState() {
+  return useLiveQuery(async () => {
+    const state = await db.syncState.get(1);
+    return state ?? null;
+  });
+}

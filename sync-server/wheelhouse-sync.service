@@ -1,0 +1,25 @@
+[Unit]
+Description=Wheelhouse Sync Server
+After=network-online.target tailscaled.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=laodzuh
+Group=laodzuh
+WorkingDirectory=/home/laodzuh/projects/laodzuh/wheelhouse/sync-server
+EnvironmentFile=/home/laodzuh/projects/laodzuh/wheelhouse/sync-server/.env
+# If you use nvm / a non-system Node, replace /usr/bin/node with the absolute
+# path from `which node`.
+ExecStart=/usr/bin/node src/index.ts
+Restart=on-failure
+RestartSec=5s
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+
+[Install]
+WantedBy=multi-user.target

@@ -7,6 +7,7 @@ import type {
   Dot,
   TradeEvent,
   AIInteraction,
+  SyncState,
 } from "@/lib/types";
 
 /**
@@ -14,6 +15,7 @@ import type {
  *
  * Index notation:
  *   ++id    = auto-increment primary key
+ *   &id     = non-auto-increment primary key, unique
  *   field   = indexed for queries
  *   [a+b]   = compound index
  *
@@ -29,6 +31,7 @@ export class WheelhouseDB extends Dexie {
   dots!: Table<Dot, number>;
   tradeEvents!: Table<TradeEvent, number>;
   aiInteractions!: Table<AIInteraction, number>;
+  syncState!: Table<SyncState, number>;
 
   constructor() {
     super("wheelhouse");
@@ -42,7 +45,33 @@ export class WheelhouseDB extends Dexie {
       tradeEvents: "++id, dotId, wheelId, thesisId, eventType, createdAt",
       aiInteractions: "++id, userId, context, relatedEntityId, relatedEntityType",
     });
+
+    // v2: add syncState. Device-local singleton; never synced.
+    this.version(2).stores({
+      userProfile: "++id",
+      strategies: "++id, userId, isActive, [userId+isActive], previousVersionId",
+      tickerTheses: "++id, userId, strategyId, ticker, status, [userId+status]",
+      wheels: "++id, thesisId, ticker",
+      dots: "++id, wheelId, state, isActive, [wheelId+isActive]",
+      tradeEvents: "++id, dotId, wheelId, thesisId, eventType, createdAt",
+      aiInteractions: "++id, userId, context, relatedEntityId, relatedEntityType",
+      syncState: "&id",
+    });
   }
 }
 
 export const db = new WheelhouseDB();
+
+/**
+ * Data tables that participate in sync. syncState is explicitly excluded —
+ * it holds the per-device secret and cursors, which must stay local.
+ */
+export const SYNC_DATA_TABLE_NAMES = [
+  "userProfile",
+  "strategies",
+  "tickerTheses",
+  "wheels",
+  "dots",
+  "tradeEvents",
+  "aiInteractions",
+] as const;

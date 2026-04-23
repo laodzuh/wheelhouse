@@ -2,8 +2,10 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ProgressBar } from "@/components/ProgressBar";
 import { OnboardingCard } from "@/components/OnboardingCard";
+import { TickerSearch } from "@/components/TickerSearch";
 import { useUserProfile, useActiveStrategy } from "@/db";
 import { db } from "@/db";
+import type { SearchResult } from "@/lib/market-data";
 
 const TOTAL_STEPS = 4;
 
@@ -11,6 +13,8 @@ const TOTAL_STEPS = 4;
 
 interface ThesisFormState {
   ticker: string;
+  isin: string;
+  companyName: string;
   name: string;
   // Prose
   conviction: string;
@@ -53,6 +57,8 @@ export function NewThesis() {
   if (!state) {
     setState({
       ticker: "",
+      isin: "",
+      companyName: "",
       name: "",
       conviction: "",
       invalidation: "",
@@ -72,6 +78,21 @@ export function NewThesis() {
   const update = <K extends keyof ThesisFormState>(key: K, value: ThesisFormState[K]) =>
     setState((prev) => prev ? { ...prev, [key]: value } : prev);
 
+  const handleTickerSelect = (result: SearchResult) => {
+    setState((prev) =>
+      prev
+        ? {
+            ...prev,
+            ticker: result.ticker || result.identifier,
+            isin: result.identifier,
+            companyName: result.name,
+            // Auto-fill the wheel name if user hasn't typed one
+            name: prev.name || `${result.ticker || result.identifier} Wheel`,
+          }
+        : prev
+    );
+  };
+
   const next = () => setStep((s) => Math.min(s + 1, TOTAL_STEPS));
   const back = () => {
     if (step === 1) {
@@ -89,6 +110,7 @@ export function NewThesis() {
       userId: profile.id!,
       strategyId: strategy.id!,
       ticker: state.ticker.toUpperCase(),
+      isin: state.isin || undefined,
       name: state.name || `${state.ticker.toUpperCase()} Wheel`,
       status: "active",
       dataFields: {
@@ -148,14 +170,20 @@ export function NewThesis() {
               <label className="mb-1.5 block text-sm text-wh-text-muted">
                 Ticker symbol
               </label>
-              <input
-                type="text"
+              <TickerSearch
                 value={state.ticker}
-                onChange={(e) => update("ticker", e.target.value.toUpperCase())}
+                onChange={(val) => update("ticker", val)}
+                onSelect={handleTickerSelect}
                 placeholder="e.g. AAPL, MSFT, SOFI"
-                maxLength={5}
-                className="w-full rounded-lg border border-wh-border bg-wh-surface-raised px-4 py-3 text-2xl font-bold uppercase text-wh-text placeholder-wh-text-muted/50 outline-none focus:border-wh-accent"
               />
+              {state.isin && (
+                <div className="mt-2 flex items-center gap-2 text-sm">
+                  <span className="text-wh-text-muted">{state.companyName}</span>
+                  <span className="rounded bg-wh-accent/10 px-2 py-0.5 text-xs font-mono text-wh-accent">
+                    {state.isin}
+                  </span>
+                </div>
+              )}
             </div>
             <div>
               <label className="mb-1.5 block text-sm text-wh-text-muted">
@@ -370,6 +398,24 @@ export function NewThesis() {
           nextLabel="Create wheel"
         >
           <div className="flex flex-col gap-3">
+            {/* Ticker info */}
+            {(state.companyName || state.isin) && (
+              <div className="rounded-xl border border-wh-border bg-wh-surface-raised p-4">
+                <div className="text-xs font-medium uppercase tracking-wide text-wh-text-muted">
+                  Security
+                </div>
+                <div className="mt-1 flex items-center gap-2">
+                  {state.companyName && (
+                    <span className="text-sm text-wh-text">{state.companyName}</span>
+                  )}
+                  {state.isin && (
+                    <span className="rounded bg-wh-accent/10 px-2 py-0.5 text-xs font-mono text-wh-accent">
+                      {state.isin}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
             {/* Conviction summary */}
             {state.conviction && (
               <div className="rounded-xl border border-wh-border bg-wh-surface-raised p-4">

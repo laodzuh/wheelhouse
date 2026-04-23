@@ -208,3 +208,30 @@ export interface AIInteraction {
   response: string;
   createdAt: string;
 }
+
+// ─── Sync ──────────────────────────────────────────────────────────
+
+export type SyncStatus =
+  | "unconfigured" // no URL/secret yet
+  | "idle"         // configured, caught up
+  | "syncing"      // pull or push in flight
+  | "offline"      // last attempt failed on the network
+  | "error"        // last attempt failed for some other reason (bad auth, etc.)
+  | "conflict";    // server moved under us; user must resolve
+
+/**
+ * Singleton row keyed at id=1. Device-local — never serialized into the
+ * backup payload, never pushed to the sync server. Holds the sync URL,
+ * shared secret, last-known server version, and pending-change flag.
+ */
+export interface SyncState {
+  id: number; // always 1
+  serverUrl: string | null;
+  secret: string | null;
+  lastServerVersion: number;
+  hasUnpushedChanges: boolean;
+  lastPulledAt: string | null;
+  lastPushedAt: string | null;
+  status: SyncStatus;
+  lastError: string | null;
+}

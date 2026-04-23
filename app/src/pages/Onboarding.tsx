@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ProgressBar } from "@/components/ProgressBar";
 import { OnboardingCard } from "@/components/OnboardingCard";
 import { OptionSelector } from "@/components/OptionSelector";
+import { SyncDialog } from "@/components/SyncDialog";
 import { db } from "@/db";
 import {
   deriveStrategy,
@@ -44,6 +45,7 @@ export function Onboarding() {
   const [step, setStep] = useState(1);
   const [state, setState] = useState<OnboardingState>(initialState);
   const [editableStrategy, setEditableStrategy] = useState<DerivedStrategy | null>(null);
+  const [syncDialogOpen, setSyncDialogOpen] = useState(false);
   const navigate = useNavigate();
 
   const update = <K extends keyof OnboardingState>(key: K, value: OnboardingState[K]) =>
@@ -108,17 +110,26 @@ export function Onboarding() {
 
       {/* Step 1: Welcome */}
       {step === 1 && (
-        <OnboardingCard
-          headline="Welcome to Wheelhouse"
-          subtext="Let's build your strategy in under a minute. Just a few questions about how you think about risk, capital, and focus."
-          onNext={next}
-          nextLabel="Let's go"
-          showBack={false}
-        >
-          <p className="text-center text-sm text-wh-text-muted">
-            Everything can be changed later. Nothing is permanent.
-          </p>
-        </OnboardingCard>
+        <>
+          <OnboardingCard
+            headline="Welcome to Wheelhouse"
+            subtext="Let's build your strategy in under a minute. Just a few questions about how you think about risk, capital, and focus."
+            onNext={next}
+            nextLabel="Let's go"
+            showBack={false}
+          >
+            <p className="text-center text-sm text-wh-text-muted">
+              Everything can be changed later. Nothing is permanent.
+            </p>
+          </OnboardingCard>
+          <button
+            type="button"
+            onClick={() => setSyncDialogOpen(true)}
+            className="mt-4 text-sm text-wh-text-muted hover:text-wh-accent"
+          >
+            Already using Wheelhouse on another device? Restore your data →
+          </button>
+        </>
       )}
 
       {/* Step 2: Basics */}
@@ -228,6 +239,11 @@ export function Onboarding() {
           onBack={back}
         />
       )}
+
+      <SyncDialog
+        open={syncDialogOpen}
+        onClose={() => setSyncDialogOpen(false)}
+      />
     </div>
   );
 }

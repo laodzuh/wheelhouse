@@ -1,5 +1,7 @@
+import { useEffect } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useUserProfile } from "@/db";
+import { initSync } from "@/db/sync";
 import { Onboarding } from "@/pages/Onboarding";
 import { Dashboard } from "@/pages/Dashboard";
 import { Strategy } from "@/pages/Strategy";
@@ -10,6 +12,10 @@ import { PlanTrade } from "@/pages/PlanTrade";
 import { BottomNav } from "@/components/BottomNav";
 
 export function App() {
+  useEffect(() => {
+    void initSync();
+  }, []);
+
   const profile = useUserProfile();
 
   if (profile === undefined) {

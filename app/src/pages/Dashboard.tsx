@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { HeroMetric } from "@/components/HeroMetric";
 import { NudgeList } from "@/components/NudgeBanner";
+import { SyncChip } from "@/components/SyncChip";
 import {
   useUserProfile,
   useActiveStrategy,
@@ -116,19 +117,22 @@ export function Dashboard() {
   return (
     <div className="mx-auto max-w-lg px-4 pb-24 pt-6">
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-wh-text">
-          Hey, {profile.name}
-        </h1>
-        <p className="mt-1 text-sm text-wh-text-muted">
-          Running{" "}
-          <button
-            onClick={() => navigate("/strategy")}
-            className="text-wh-accent underline-offset-2 hover:underline"
-          >
-            {strategy.name}
-          </button>
-        </p>
+      <div className="mb-6 flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-wh-text">
+            Hey, {profile.name}
+          </h1>
+          <p className="mt-1 text-sm text-wh-text-muted">
+            Running{" "}
+            <button
+              onClick={() => navigate("/strategy")}
+              className="text-wh-accent underline-offset-2 hover:underline"
+            >
+              {strategy.name}
+            </button>
+          </p>
+        </div>
+        <SyncChip />
       </div>
 
       {/* Hero Metrics */}
